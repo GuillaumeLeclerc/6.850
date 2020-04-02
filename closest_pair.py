@@ -49,11 +49,11 @@ def plot(solution_data):
         strip = solution_data['strip']
         ax.scatter(strip[:, 0], strip[:, 1], color='red', zorder=6)
         ax.scatter(checking[:, 0], checking[:, 1], color='green', zorder=7)
-        plt.pause(1)
+        # plt.pause(0)
     else:
-        plt.pause(1)
+        pass
 
-def solve(points, solution_data):
+def solve(points, solution_data, y_order):
     n = len(points)
     if n <= 2:  # Base case
         return points
@@ -67,8 +67,11 @@ def solve(points, solution_data):
         solution_data['checking'] = False
         plot(solution_data)
         p1, p2 = points[:mid_point], points[mid_point:]
-        s1 = solve(points[:mid_point], solution_data)
-        s2 = solve(points[mid_point:], solution_data)
+        lower_y = y_order[y_order < mid_point]
+        higher_y = y_order[y_order >= mid_point]
+        higher_y = higher_y - higher_y.min()
+        s1 = solve(p1, solution_data, lower_y)
+        s2 = solve(p2, solution_data, higher_y)
         d1, d2 = dist(s1), dist(s2)
 
         if d2 < d1:  # Ensure that s1 and d1 contain the best solutions
@@ -90,18 +93,18 @@ def solve(points, solution_data):
         strip = points[strip_start:strip_end]
         solution_data['strip'] = strip
         print("checking a strip with", len(strip))
-        y_order = np.argsort(strip[:, 1])
+        y_order = y_order[strip_start:strip_end]
 
         for i in range(len(strip)):
             for j in range(i + 1, len(strip)):
-                if strip[y_order[j], 1] - strip[y_order[i], 1] > d:
+                if points[y_order[j], 1] - points[y_order[i], 1] > d:
                     break
-                solution_data['checking'] = np.array([strip[y_order[j]], strip[y_order[i]]])
+                solution_data['checking'] = np.array([points[y_order[j]], points[y_order[i]]])
                 plot(solution_data)
-                new_d = dist(np.array([strip[y_order[j]], strip[y_order[i]]]))
+                new_d = dist(np.array([points[y_order[j]], points[y_order[i]]]))
                 if new_d < d:
                     d = new_d
-                    s = np.array([strip[y_order[j]], strip[y_order[i]]])
+                    s = np.array([points[y_order[j]], points[y_order[i]]])
         return s
 
 
@@ -109,7 +112,9 @@ points = gather_points_manually()
 if len(points) == 0:
     points = gather_points_random()
 x_order = np.argsort(points[:, 0])
+y_order = np.argsort(points[:, 1])
 sorted_x = points[x_order]
+y_order = np.argsort(sorted_x[:, 1])
 f = plt.figure()
 plt.scatter(points[:, 0], points[:, 1])
 plt.grid()
@@ -123,6 +128,7 @@ solution_data = {
     'max': 0,
     'figure': f
 }
-solution = solve(sorted_x, solution_data)
-plt.scatter(solution[:, 0], solution[:, 1])
+solution = solve(sorted_x, solution_data, y_order)
+ax = solution_data['figure'].axes[0]
+ax.scatter(solution[:, 0], solution[:, 1],500, color='black')
 plt.waitforbuttonpress()
